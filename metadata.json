@@ -1,0 +1,10 @@
+{
+  "name": "NagarMitra AI",
+  "description": "AI-powered civic intelligence and community resolution platform for Hyderabad.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
