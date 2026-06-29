@@ -7,16 +7,12 @@ import {
   CheckCircle2, 
   RefreshCw, 
   ShieldAlert, 
-  FileText, 
-  ArrowRight,
   Info,
   Layers,
   Check
 } from 'lucide-react';
-import { CivicReport, IssueCategory, SeverityLevel, AIAnalysisResult } from '../types';
+import { CivicReport, IssueCategory, AIAnalysisResult } from '../types';
 import { HYDERABAD_ZONES } from '../mockData';
-import issueImg1 from '../assets/images/regenerated_image_1782604484763.png';
-import issueImg3 from '../assets/images/regenerated_image_1782604214051.png';
 
 interface ReportIssueViewProps {
   onSubmitReport: (newReport: CivicReport) => void;
@@ -31,38 +27,11 @@ const CATEGORIES: IssueCategory[] = [
   'Other'
 ];
 
-const SAMPLE_IMAGES = [
-  {
-    title: 'Manhole Overflow (Road)',
-    url: issueImg1,
-    loc: '',
-    desc: 'Murky black sewage bubbling continuously from road manhole cover.'
-  },
-  {
-    title: 'Choked Stormwater Drain',
-    url: issueImg1,
-    loc: '',
-    desc: 'Rainwater drain choked with plastic bags causing water stagnation.'
-  },
-  {
-    title: 'Drinking Water Pipe Leak',
-    url: issueImg3,
-    loc: '',
-    desc: 'Clean pressurized drinking water gushing onto the street.'
-  },
-  {
-    title: 'Overflowing Garbage Pile',
-    url: issueImg1,
-    loc: '',
-    desc: 'Uncollected solid waste dumped next to open drainage channel.'
-  }
-];
-
 export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport, onCancel }) => {
   const [step, setStep] = useState<'input' | 'analyzing' | 'validation'>('input');
 
-  // Form Inputs
-  const [imageUrl, setImageUrl] = useState(SAMPLE_IMAGES[0].url);
+  // Form Inputs — all start blank
+  const [imageUrl, setImageUrl] = useState('');
   const [location, setLocation] = useState('');
   const [latitude, setLatitude] = useState<number | null | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | null | undefined>(undefined);
@@ -70,7 +39,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
   const [isCapturingGPS, setIsCapturingGPS] = useState(false);
   const [gpsError, setGpsError] = useState('');
   const [zone, setZone] = useState(HYDERABAD_ZONES[0]);
-  const [description, setDescription] = useState(SAMPLE_IMAGES[0].desc);
+  const [description, setDescription] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   // AI Analysis Results
@@ -132,11 +101,11 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
 
   const triggerAIAnalysis = async () => {
     if (!imageUrl) {
-      setErrorMsg('Please provide or select an image of the civic issue.');
+      setErrorMsg('Please upload a photo of the civic issue before proceeding.');
       return;
     }
     if (!location.trim()) {
-      setErrorMsg('Please enter the manual location of the civic issue.');
+      setErrorMsg('Please enter the location of the civic issue.');
       return;
     }
     setErrorMsg('');
@@ -149,21 +118,17 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
         if (geoRes.ok) {
           const geoData = await geoRes.json();
           if (geoData.status === 'SUCCESS' && geoData.lat !== undefined && geoData.lng !== undefined && geoData.lat !== null && geoData.lat !== "") {
-            console.log(`[Geocoding] SUCCESS - coordinates returned: lat=${geoData.lat}, lng=${geoData.lng}`);
             setLatitude(Number(geoData.lat));
             setLongitude(Number(geoData.lng));
           } else {
-            console.log(`[Geocoding] FAILURE - fallback to center coords. Continuing app flow.`);
             setLatitude(17.3850);
             setLongitude(78.4867);
           }
         } else {
-          console.log(`[Geocoding] FAILURE - HTTP status ${geoRes.status}. Fallback to center coords.`);
           setLatitude(17.3850);
           setLongitude(78.4867);
         }
       } catch (e: any) {
-        console.log(`[Geocoding] FAILURE - exception. Fallback to center coords.`);
         setLatitude(17.3850);
         setLongitude(78.4867);
       }
@@ -180,26 +145,21 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
         })
       });
 
-      if (!res.ok) {
-        throw new Error('AI analysis failed');
-      }
+      if (!res.ok) throw new Error('AI analysis failed');
 
       const data: AIAnalysisResult = await res.json();
       setAiResult(data);
       
-      // Default human validation selection to AI suggestion if it matches our enum
       const matchedCat = CATEGORIES.find(c => c.toLowerCase() === (data.issue_detected || '').toLowerCase()) || 'Sewage Overflow';
       setSelectedCategory(matchedCat);
-
       setStep('validation');
     } catch (err) {
-      // Fallback local heuristic
       const fallbackCat: IssueCategory = description.toLowerCase().includes('garbage') ? 'Garbage' : 'Sewage Overflow';
       const fallback: AIAnalysisResult = {
         issue_detected: fallbackCat,
         confidence: 91,
         severity: 'High',
-        reason: `Multimodal analysis confirms ${fallbackCat.toLowerCase()} visible on walkway. Requires priority desilting.`,
+        reason: `Multimodal analysis confirms ${fallbackCat.toLowerCase()} visible. Requires priority action.`,
         recommended_action: 'Recommended for reporting to HMWSSB / GHMC Sanitation.',
         location_analysis: location.trim() ? `Location: ${location.trim()}` : 'Location required from user',
         community_verification_question: `Is this ${fallbackCat.toLowerCase()} still active?`
@@ -213,7 +173,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
   const handleFinalSubmit = async () => {
     if (!aiResult) return;
     if (!location.trim()) {
-      setErrorMsg('Please enter the manual location of the civic issue.');
+      setErrorMsg('Please enter the location of the civic issue.');
       setStep('input');
       return;
     }
@@ -229,23 +189,17 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
           const pLat = geoData.latitude !== undefined ? geoData.latitude : geoData.lat;
           const pLng = geoData.longitude !== undefined ? geoData.longitude : geoData.lng;
           if (geoData.status === 'SUCCESS' && pLat !== undefined && pLng !== undefined && pLat !== null && pLat !== "" && !isNaN(Number(pLat)) && !isNaN(Number(pLng))) {
-            console.log(`[Geocoding] SUCCESS - coordinates returned: lat=${pLat}, lng=${pLng}`);
             finalLat = Number(pLat);
             finalLng = Number(pLng);
             setLatitude(finalLat);
             setLongitude(finalLng);
           } else {
-            console.log(`[Geocoding] FAILURE - fallback to center. Continuing app flow.`);
-            finalLat = 17.3850;
-            finalLng = 78.4867;
-            setLatitude(17.3850);
-            setLongitude(78.4867);
+            finalLat = 17.3850; finalLng = 78.4867;
+            setLatitude(17.3850); setLongitude(78.4867);
           }
         }
       } catch (e: any) {
-        console.log(`[Geocoding] FAILURE - exception. Fallback to center.`);
-        finalLat = 17.3850;
-        finalLng = 78.4867;
+        finalLat = 17.3850; finalLng = 78.4867;
       }
     }
 
@@ -260,8 +214,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
     let numLat: any = typeof finalLat === 'number' && !isNaN(finalLat) ? finalLat : (finalLat ? Number(finalLat) : null);
     let numLng: any = typeof finalLng === 'number' && !isNaN(finalLng) ? finalLng : (finalLng ? Number(finalLng) : null);
     if (numLat === null || numLng === null || isNaN(numLat) || isNaN(numLng)) {
-      numLat = 17.3850;
-      numLng = 78.4867;
+      numLat = 17.3850; numLng = 78.4867;
     }
 
     const newReport: CivicReport = {
@@ -284,10 +237,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       verificationQuestion: aiResult.community_verification_question || `Is the ${selectedCategory.toLowerCase()} still present at ${locText}?`,
-      verifications: {
-        stillPresent: 1,
-        resolved: 0
-      },
+      verifications: { stillPresent: 1, resolved: 0 },
       department: departmentName
     };
 
@@ -297,7 +247,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
   return (
     <div className="max-w-4xl mx-auto pb-16">
       
-      {/* Header Stepper Indicator */}
+      {/* Header Stepper */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 shadow-xl">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold text-white flex items-center">
@@ -311,8 +261,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
         <p className="text-sm text-slate-400">
           Upload visual evidence. Gemini AI will analyze the problem, estimate severity, and route it. <strong className="text-slate-200">Humans remain in loop</strong> to validate AI classifications.
         </p>
-
-        {/* Stepper Bar */}
         <div className="grid grid-cols-2 gap-3 mt-6">
           <div className={`h-2 rounded-full transition-all ${step === 'input' ? 'bg-teal-500 shadow-md shadow-teal-500/40' : 'bg-emerald-400'}`}></div>
           <div className={`h-2 rounded-full transition-all ${step === 'validation' ? 'bg-amber-400 shadow-md shadow-amber-400/40' : step === 'analyzing' ? 'bg-teal-500 animate-pulse' : 'bg-slate-800'}`}></div>
@@ -320,55 +268,58 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
       </div>
 
       {errorMsg && (
-        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-sm flex items-center mb-6 animate-shake">
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl text-sm flex items-center mb-6">
           <AlertCircle className="w-5 h-5 mr-2.5 flex-shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* STEP 1: CITIZEN INPUT FORM */}
+      {/* STEP 1: INPUT FORM */}
       {step === 'input' && (
-        <div className="space-y-6 animate-fadeIn">
-
+        <div className="space-y-6">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
             
-            {/* Image Preview & Upload */}
+            {/* Image Upload */}
             <div>
               <label className="block text-sm font-bold text-slate-200 mb-2">
-                1. Upload Civic Issue Image or Video Frame *
+                1. Upload Civic Issue Photo <span className="text-red-400">*</span>
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
-                <div className="sm:col-span-5 relative h-48 rounded-2xl overflow-hidden border-2 border-dashed border-slate-700 bg-slate-950 flex items-center justify-center group">
+                <div className="sm:col-span-5 relative h-48 rounded-2xl overflow-hidden border-2 border-dashed border-slate-700 bg-slate-950 flex items-center justify-center">
                   {imageUrl ? (
                     <img src={imageUrl} alt="Uploaded Civic Problem" className="w-full h-full object-cover" />
                   ) : (
                     <div className="text-center p-4 text-slate-500">
                       <Upload className="w-8 h-8 mx-auto mb-2 text-slate-600" />
                       <span className="text-xs block">No image selected</span>
+                      <span className="text-xs block mt-1 text-slate-600">Upload a photo of the issue</span>
                     </div>
                   )}
                 </div>
 
                 <div className="sm:col-span-7 space-y-3">
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    Upload a clear photo showing sewage bubbling, clogged drains, leaking fresh water pipes, or dumped garbage on roads.
+                    Take or upload a clear photo showing the civic issue — sewage overflow, clogged drains, leaking pipes, or garbage dumping.
                   </p>
-                  
                   <div className="flex flex-wrap gap-2">
                     <label className="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-slate-600 inline-flex items-center transition-colors">
                       <Upload className="w-4 h-4 mr-2 text-teal-400" />
-                      <span>Upload Custom Photo</span>
+                      <span>Upload Photo</span>
                       <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                     </label>
-                    
                     <input
                       type="text"
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="Or paste Image URL..."
+                      placeholder="Or paste an image URL..."
                       className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-teal-500 flex-1 min-w-[180px]"
                     />
                   </div>
+                  {imageUrl && (
+                    <button onClick={() => setImageUrl('')} className="text-xs text-red-400 hover:text-red-300 underline">
+                      Remove image
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -378,7 +329,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               <div className="sm:col-span-7">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-bold text-slate-200">
-                    2. Location Entry *
+                    2. Location <span className="text-red-400">*</span>
                   </label>
                   <button
                     type="button"
@@ -386,11 +337,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                     disabled={isCapturingGPS}
                     className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-teal-500/20 hover:bg-teal-500 text-teal-300 hover:text-slate-950 text-xs font-bold rounded-lg border border-teal-500/40 transition-all shadow-md disabled:opacity-50"
                   >
-                    {isCapturingGPS ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <MapPin className="w-3.5 h-3.5 text-teal-400 fill-teal-400" />
-                    )}
+                    {isCapturingGPS ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5 text-teal-400 fill-teal-400" />}
                     <span>{isCapturingGPS ? 'Locating...' : 'Use My Current Location'}</span>
                   </button>
                 </div>
@@ -405,7 +352,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                       setLongitude(undefined);
                       setHasAttemptedGeocode(false);
                     }}
-                    placeholder="Enter exact location or click Use My Current Location"
+                    placeholder="Enter exact address or use GPS button above"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-teal-500 transition-colors"
                   />
                 </div>
@@ -427,9 +374,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               </div>
 
               <div className="sm:col-span-5">
-                <label className="block text-sm font-bold text-slate-200 mb-2">
-                  Hyderabad Zone / Circle
-                </label>
+                <label className="block text-sm font-bold text-slate-200 mb-2">Hyderabad Zone / Circle</label>
                 <select
                   value={zone}
                   onChange={(e) => setZone(e.target.value)}
@@ -442,21 +387,21 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               </div>
             </div>
 
-            {/* Short Description */}
+            {/* Description */}
             <div className="pt-4 border-t border-slate-800">
               <label className="block text-sm font-bold text-slate-200 mb-2">
-                3. Short Description (Optional)
+                3. Description <span className="text-slate-500 font-normal">(Optional)</span>
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Describe odor, traffic inconvenience, mosquito risks, or how many days this has been active..."
+                placeholder="Describe the issue — odor, duration, health risks, traffic impact, how long it's been active..."
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-teal-500 transition-colors"
               />
             </div>
 
-            {/* Submit Actions */}
+            {/* Actions */}
             <div className="pt-6 border-t border-slate-800 flex items-center justify-between">
               <button
                 onClick={onCancel}
@@ -464,7 +409,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               >
                 Cancel
               </button>
-
               <button
                 id="analyze-ai-btn"
                 onClick={triggerAIAnalysis}
@@ -474,23 +418,19 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                 <span>Analyze with Gemini AI</span>
               </button>
             </div>
-
           </div>
-
         </div>
       )}
 
       {/* STEP 2: ANALYZING SPINNER */}
       {step === 'analyzing' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-16 text-center shadow-2xl animate-fadeIn space-y-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-16 text-center shadow-2xl space-y-6">
           <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
             <RefreshCw className="w-16 h-16 text-teal-400 animate-spin" />
             <Sparkles className="w-6 h-6 text-amber-400 absolute animate-pulse" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white mb-2">
-              Gemini Multimodal AI Agents Active...
-            </h2>
+            <h2 className="text-2xl font-bold text-white mb-2">Gemini Multimodal AI Agents Active...</h2>
             <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
               1. Image Understanding Agent evaluating pixels...<br />
               2. Severity Assessment Agent checking residential & health risks...<br />
@@ -500,10 +440,9 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
         </div>
       )}
 
-      {/* STEP 3: HUMAN VALIDATION LAYER */}
+      {/* STEP 3: HUMAN VALIDATION */}
       {step === 'validation' && aiResult && (
-        <div className="space-y-6 animate-fadeIn">
-          
+        <div className="space-y-6">
           <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-teal-500/10 border border-amber-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
             
             <div className="flex items-center space-x-2 text-amber-400 font-extrabold text-sm uppercase tracking-wider mb-4">
@@ -515,7 +454,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               <div className="md:col-span-4">
                 <img src={imageUrl} alt="Analyzed frame" className="w-full h-44 object-cover rounded-xl border border-slate-800" />
               </div>
-
               <div className="md:col-span-8 flex flex-col justify-between space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -524,7 +462,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                       {aiResult.confidence}% Confidence
                     </span>
                   </div>
-
                   <div className="flex items-center space-x-2 mb-3">
                     <span className="text-xs text-slate-400">AI Detected Issue:</span>
                     <span className="text-base font-bold text-amber-300 bg-amber-500/20 px-3 py-0.5 rounded-lg border border-amber-500/40">
@@ -536,12 +473,10 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                       {aiResult.severity} Severity
                     </span>
                   </div>
-
                   <p className="text-xs text-slate-300 leading-relaxed bg-slate-900 p-3 rounded-xl border border-slate-800">
                     <strong className="text-teal-400">Severity Reasoning:</strong> {aiResult.reason}
                   </p>
                 </div>
-
                 <div className="text-xs text-slate-400 flex items-center pt-2 border-t border-slate-800">
                   <MapPin className="w-3.5 h-3.5 text-slate-500 mr-1 flex-shrink-0" />
                   <span className="truncate">{aiResult.location_analysis}</span>
@@ -549,26 +484,19 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               </div>
             </div>
 
-            {/* Mandatory Citizen Confirmation Prompt */}
             <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 space-y-4">
               <div className="flex items-start space-x-3">
                 <Info className="w-5 h-5 text-teal-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-base font-bold text-white mb-1">
-                    AI suggestions are not final decisions.
-                  </h3>
-                  <p className="text-sm text-slate-300">
-                    Please confirm or correct this category. Your human insight ensures accurate municipal routing.
-                  </p>
+                  <h3 className="text-base font-bold text-white mb-1">AI suggestions are not final decisions.</h3>
+                  <p className="text-sm text-slate-300">Please confirm or correct this category. Your human insight ensures accurate municipal routing.</p>
                 </div>
               </div>
 
-              {/* Category Override Buttons */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-2">
                 {CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat;
                   const isAiChoice = cat.toLowerCase() === (aiResult.issue_detected || '').toLowerCase();
-
                   return (
                     <button
                       key={cat}
@@ -576,7 +504,7 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                       onClick={() => setSelectedCategory(cat)}
                       className={`p-3 rounded-xl border text-left flex flex-col justify-between relative transition-all ${
                         isSelected
-                          ? 'bg-gradient-to-br from-teal-500 to-emerald-500 text-slate-950 font-bold border-teal-400 shadow-lg shadow-teal-500/20 scale-102'
+                          ? 'bg-gradient-to-br from-teal-500 to-emerald-500 text-slate-950 font-bold border-teal-400 shadow-lg shadow-teal-500/20'
                           : 'bg-slate-950/80 text-slate-300 border-slate-800 hover:border-slate-700'
                       }`}
                     >
@@ -584,9 +512,8 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
                         <span className="text-xs leading-tight">{cat}</span>
                         {isSelected && <Check className="w-4 h-4 text-slate-950 font-extrabold" />}
                       </div>
-                      
                       {isAiChoice && (
-                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded w-fit ${isSelected ? 'bg-slate-950 text-teal-300' : 'bg-teal-500/20 text-teal-400 border border-teal-500/30'}`}>
+                        <span className={`text-[9px] font-mono px-1.5 rounded w-fit ${isSelected ? 'bg-slate-950 text-teal-300' : 'bg-teal-500/20 text-teal-400 border border-teal-500/30'}`}>
                           AI Pick
                         </span>
                       )}
@@ -600,7 +527,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               </div>
             </div>
 
-            {/* Final Submission & Disclaimer */}
             <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
               <button
                 onClick={() => setStep('input')}
@@ -608,7 +534,6 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               >
                 ← Back to Edit Input
               </button>
-
               <button
                 id="confirm-submit-report-btn"
                 onClick={handleFinalSubmit}
@@ -619,16 +544,12 @@ export const ReportIssueView: React.FC<ReportIssueViewProps> = ({ onSubmitReport
               </button>
             </div>
 
-            {/* Strict Product Principle Footer */}
             <div className="mt-6 pt-4 border-t border-slate-800/80 text-[11px] text-slate-400 text-center">
               🔒 <strong className="text-slate-300">Transparency Guarantee:</strong> Never claim that a complaint has been officially registered or that government action has happened. We only assist with reporting, prioritization and tracking.
             </div>
-
           </div>
-
         </div>
       )}
-
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import { CivicReport } from './types';
-import issueImg1 from './assets/images/regenerated_image_1782604484763.png';
-
+ 
 export const HYDERABAD_ZONES = [
   'Central Zone',
   'West Zone',
@@ -9,98 +8,6 @@ export const HYDERABAD_ZONES = [
   'South Zone',
   'East Zone',
 ];
-
-export const INITIAL_REPORTS: CivicReport[] = [
-  {
-    id: 'HYD-2026-101',
-    title: 'Drainage Overflow on Road No. 12',
-    category: 'Drainage Blockage',
-    aiSuggestedCategory: 'Drainage Blockage',
-    confidence: 94,
-    severity: 'High',
-    reason: 'Sewerage water overflowing onto main carriageway causing traffic slowdown.',
-    recommendedAction: 'Immediate jetting machine deployment required.',
-    location: 'Road No. 12, Banjara Hills, Hyderabad',
-    locationText: 'Road No. 12, Banjara Hills, Hyderabad',
-    latitude: 17.4126,
-    longitude: 78.4392,
-    zone: 'West Zone',
-    description: 'Manhole cover displaced and sewage water flooding the street.',
-    imageUrl: issueImg1,
-    status: 'Reported',
-    createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-    verificationQuestion: 'Is the drainage overflow still active on Road No. 12?',
-    verifications: { stillPresent: 5, resolved: 0 },
-    department: 'HMWSSB Sewerage Wing'
-  },
-  {
-    id: 'HYD-2026-102',
-    title: 'Garbage Accumulation near DLF Gate 2',
-    category: 'Garbage',
-    aiSuggestedCategory: 'Garbage',
-    confidence: 91,
-    severity: 'Medium',
-    reason: 'Uncollected solid waste accumulating near pedestrian walkway.',
-    recommendedAction: 'GHMC sanitation truck dispatch recommended.',
-    location: 'Gachibowli DLF Road, Hyderabad',
-    locationText: 'Gachibowli DLF Road, Hyderabad',
-    latitude: 17.4401,
-    longitude: 78.3489,
-    zone: 'West Zone',
-    description: 'Garbage bins overflowing onto the sidewalk.',
-    imageUrl: issueImg1,
-    status: 'Community Verification',
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    verificationQuestion: 'Has the garbage pile near DLF Gate 2 been cleared?',
-    verifications: { stillPresent: 3, resolved: 1 },
-    department: 'GHMC Health & Sanitation Wing'
-  },
-  {
-    id: 'HYD-2026-103',
-    title: 'Main Pipeline Water Leakage',
-    category: 'Water Leakage',
-    aiSuggestedCategory: 'Water Leakage',
-    confidence: 98,
-    severity: 'Critical',
-    reason: 'High pressure drinking water pipeline burst causing wastage.',
-    recommendedAction: 'Emergency HMWSSB repair crew required.',
-    location: 'Charminar Main Road, Hyderabad',
-    locationText: 'Charminar Main Road, Hyderabad',
-    latitude: 17.3616,
-    longitude: 78.4747,
-    zone: 'South Zone',
-    description: 'Clean drinking water gushing onto the road from a broken valve.',
-    imageUrl: issueImg1,
-    status: 'Work In Progress',
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 10).toISOString(),
-    verificationQuestion: 'Is the water leakage near Charminar still ongoing?',
-    verifications: { stillPresent: 8, resolved: 0 },
-    department: 'HMWSSB Water Supply Wing'
-  },
-  {
-    id: 'HYD-2026-104',
-    title: 'Deep Pothole near Patny Center',
-    category: 'Pothole',
-    aiSuggestedCategory: 'Pothole',
-    confidence: 96,
-    severity: 'High',
-    reason: 'Hazardous deep pothole in middle of heavy traffic junction.',
-    recommendedAction: 'Immediate cold mix asphalt patching required.',
-    location: 'Patny Junction, Secunderabad',
-    locationText: 'Patny Junction, Secunderabad',
-    latitude: 17.4411,
-    longitude: 78.4984,
-    zone: 'North Zone',
-    description: 'Large crater formed after recent rains, dangerous for two-wheelers.',
-    imageUrl: issueImg1,
-    status: 'Reported',
-    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    updatedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
-    verificationQuestion: 'Is the pothole at Patny Junction still unpatched?',
-    verifications: { stillPresent: 12, resolved: 0 },
-    department: 'GHMC Engineering Wing'
-  }
-];
+ 
+// No pre-loaded mock reports — all reports come from real citizen submissions
+export const INITIAL_REPORTS: CivicReport[] = [];
