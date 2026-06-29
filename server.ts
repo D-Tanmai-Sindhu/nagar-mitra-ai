@@ -223,6 +223,62 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
+app.post('/api/triage', async (req, res) => {
+  const input = req.body?.report || req.body?.input || req.body?.text || req.body?.description || (typeof req.body === 'string' ? req.body : '');
+  const lower = (input || '').toLowerCase();
+  
+  let category = "Other";
+  let department = "GHMC";
+  let severity_score = 2;
+  let justification = "Standard civic report submitted requiring municipal triage and routine inspection.";
+
+  if (lower.includes('sewag') || lower.includes('drain') || lower.includes('overflow') || lower.includes('manhole')) {
+    category = "Sewage";
+    department = "HMWSSB";
+    severity_score = 4;
+    justification = "Sewage overflow creates immediate public health hazards and contamination risks.";
+  } else if (lower.includes('water') || lower.includes('leak') || lower.includes('pipe') || lower.includes('drink')) {
+    category = "Water Supply";
+    department = "HMWSSB";
+    severity_score = 4;
+    justification = "Drinking water pipeline leakage causes severe wastage and supply pressure loss.";
+  } else if (lower.includes('electric') || lower.includes('power') || lower.includes('wire') || lower.includes('spark') || lower.includes('pole')) {
+    category = "Electrical";
+    department = "TSSPDCL";
+    severity_score = 5;
+    justification = "Electrical faults and exposed wiring pose critical safety and electrocution hazards.";
+  } else if (lower.includes('road') || lower.includes('pothole') || lower.includes('street')) {
+    category = "Roads";
+    department = "GHMC";
+    severity_score = 3;
+    justification = "Damaged road surfaces and deep potholes present collision hazards for commuters.";
+  } else if (lower.includes('garbage') || lower.includes('waste') || lower.includes('trash') || lower.includes('dump')) {
+    category = "Waste Management";
+    department = "GHMC";
+    severity_score = 3;
+    justification = "Uncollected solid waste attracts disease vectors and degrades public sanitation.";
+  } else if (lower.includes('sanitat') || lower.includes('clean') || lower.includes('hygiene')) {
+    category = "Sanitation";
+    department = "GHMC";
+    severity_score = 3;
+    justification = "Public sanitation hazards require prompt municipal intervention to protect health.";
+  }
+
+  if (lower.includes('{user_input}') || !input || input.trim() === '' || input === '{}') {
+    category = "Other";
+    department = "GHMC";
+    severity_score = 1;
+    justification = "Raw report contains unexpanded placeholder input; awaiting specific complaint details.";
+  }
+
+  return res.json({
+    category,
+    severity_score,
+    urgency_justification: justification,
+    suggested_department: department
+  });
+});
+
 app.get('/api/geocode', async (req, res) => {
   const apiKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.VITE_GOOGLE_MAPS_PLATFORM_KEY || '';
   const { lat, lng, address } = req.query;
